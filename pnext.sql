@@ -55,3 +55,37 @@ begin
 	update lobby set currentsize = currentsize - 1
     where code = OLD.code;
 end //
+
+delimiter //
+
+drop procedure editUser //
+
+create procedure editUser(user_id char(4), code char(4), is_host boolean)
+begin 
+	update users set code = code, is_host = is_host where user_id = user_id;
+end //
+
+create trigger delLobby after delete on users for each row
+begin 
+	delete from lobby where code = OLD.code;
+end //
+
+create trigger lobbyMinus after delete on users for each row
+begin 
+	declare host boolean;
+    select is_host into host from users where user_id = OLD.user_id;
+    if host = 1 then
+		call removeLobby(OLD.code);
+	else
+		update lobby set currentsize = currentsize - 1;
+	end if;
+end //
+
+drop trigger lobbyMinus //
+
+drop procedure removeUser //
+
+create procedure removeUser(user_id char(4))
+begin 
+	delete from users where user_id = user_id;
+end //
