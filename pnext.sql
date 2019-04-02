@@ -50,26 +50,31 @@ begin
     where code = NEW.code;
 end //
 
+create trigger lobbyPlusEdit after update on users for each row
+begin 
+	update lobby set currentsize = currentsize + 1
+	where code = NEW.code;
+end //
+
 create trigger lobbyMinus after delete on users for each row
 begin
 	update lobby set currentsize = currentsize - 1
     where code = OLD.code;
 end //
 
-delimiter //
-
 drop procedure editUser //
-
-create procedure editUser(user_id char(4), code char(4), is_host boolean)
+create procedure editUser(to_user_id char(4), to_code char(4), to_host boolean)
 begin 
-	update users set code = code, is_host = is_host where user_id = user_id;
+	declare lob char(4);
+    select code into lob from users where user_id = to_user_id;
+	update users set code = to_code, is_host = to_host where user_id = to_user_id and code = lob;
 end //
 
 create trigger delLobby after delete on users for each row
 begin 
 	delete from lobby where code = OLD.code;
 end //
-
+drop trigger lobbyMinus //
 create trigger lobbyMinus after delete on users for each row
 begin 
 	declare host boolean;
@@ -81,11 +86,23 @@ begin
 	end if;
 end //
 
-drop trigger lobbyMinus //
-
-drop procedure removeUser //
-
-create procedure removeUser(user_id char(4))
+create procedure removeUser(rem_user_id char(4))
 begin 
-	delete from users where user_id = user_id;
+	declare lob char(4);
+    select code into lob from users where user_id = rem_user_id;
+	delete from users where user_id = rem_user_id and code = lob;
+end //
+drop procedure removeUser //
+create procedure removeUser(rem_user_id char(4))
+begin
+	declare host boolean;
+    declare lob char(4);
+    select code into lob from users where user_id = rem_user_id;
+    select is_host into host from users where users.user_id = rem_user_id;
+    if host = 1 then
+		delete from users where users.user_id = rem_user_id and code = lob;
+        call removeLobby(lob);
+	else
+		delete from users where users.user_id = rem_user_id and code = lob;
+	end if;
 end //
